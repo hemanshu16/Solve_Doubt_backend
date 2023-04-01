@@ -28,13 +28,25 @@ namespace Online_Discussion_Forum.Controllers
 
         // GET: api/Questions
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Questions>>> GetQuestions_()
+        public async Task<ActionResult<IEnumerable<Questions_DTO>>> GetQuestions_([FromQuery] int pagenumber)
         {
           if (_context.Questions_ == null)
           {
               return NotFound();
           }
-            return await _context.Questions_.OrderBy(x => x.update_date).Reverse().ToListAsync();
+            var questions = await _context.Questions_.OrderBy(x => x.update_date).Reverse().Skip(pagenumber*10).Take(10).ToListAsync();
+            var questions_dto = new List<Questions_DTO>();
+            foreach (var question in questions)
+            {
+                var question_dto = _mapper.Map<Questions_DTO>(question);
+                var tags = _context.Tag_.Where(e => e.question_id == question.Id)?.ToList();
+                if (tags != null)
+                {
+                    question_dto.tag = tags;
+                }
+                questions_dto.Add(question_dto);
+            }
+            return questions_dto;
         }
 
         // GET: api/Questions/5
@@ -63,7 +75,7 @@ namespace Online_Discussion_Forum.Controllers
 
         [HttpGet]
         [Route("GetQuestions")]
-        public async Task<ActionResult<IEnumerable<Questions>>> GetQuestions()
+        public async Task<ActionResult<IEnumerable<Questions_DTO>>> GetQuestions([FromQuery] int pagenumber)
         {
             try
             {
@@ -72,8 +84,19 @@ namespace Online_Discussion_Forum.Controllers
 
                 string email = env;
                 var user = _context.User_.FirstOrDefault(e => e.Email == email);
-                var questions = _context.Questions_.Where(e => e.user_id == user.Id).ToList();
-                return questions;
+                var questions = _context.Questions_.Where(e => e.user_id == user.Id).Skip(pagenumber*10).Take(10).ToList();
+                var questions_dto = new List<Questions_DTO>();
+                foreach(var question in questions)
+                {
+                    var question_dto = _mapper.Map<Questions_DTO>(question);
+                    var tags = _context.Tag_.Where(e => e.question_id == question.Id)?.ToList();
+                    if (tags != null)
+                    {
+                        question_dto.tag = tags;
+                    }
+                    questions_dto.Add(question_dto);
+                }
+                return questions_dto;
             }
             catch (Exception ex)
             {
@@ -81,8 +104,96 @@ namespace Online_Discussion_Forum.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("GetQuestionByTags")]
+        public async Task<ActionResult<IEnumerable<Questions_DTO>>> GetQuestionsByTags([FromQuery] List<String> tags, [FromQuery] int pagenumber)
+        {
+            Dictionary<Int64,int>ids = new Dictionary<Int64,int>();
+            int n = tags.Count;
+            for(int i=0;i<n;i++)
+            {
+                List<Tags> tags1 = _context.Tag_.Where(e => e.Tag_Name == tags[i]).Skip(pagenumber * 10).Take(10).ToList();
+                int m = tags1.Count;
+                for(int j=0;j<m;j++)
+                {
+                    if (ids.ContainsKey(tags1[j].question_id))
+                    {
+                        ids[tags1[j].question_id]++;
+                    }
+                    else
+                    {
+                        ids[tags1[j].question_id] = 1;
+                    }
+                }
+            }
+            var sortedDict = from entry in ids orderby entry.Value descending select entry;
+            List<Questions> questions= new List<Questions>();
+
+            foreach (var tag in sortedDict)
+            {
+              var question = _context.Questions_.Where(e => e.Id == tag.Key).FirstOrDefault();
+                if(question != null)
+                {
+                    questions.Add(question);
+                }
+            }
+            var questions_dto = new List<Questions_DTO>();
+            foreach (var question in questions)
+            {
+                var question_dto = _mapper.Map<Questions_DTO>(question);
+                var tags1 = _context.Tag_.Where(e => e.question_id == question.Id)?.ToList();
+                if (tags1 != null)
+                {
+                    question_dto.tag = tags1;
+                }
+                questions_dto.Add(question_dto);
+            }
+            return Ok(questions_dto);
+
+        }
+
+        [HttpGet]
+        [Route("GetQuestionbyText")]
+        public async Task<ActionResult<IEnumerable<Questions_DTO>>> GetQuestionsByText([FromQuery] String text, [FromQuery] int pagenumber)
+        {   
+            List<Questions> questions = new List<Questions>();
+            if(text != "")
+            {
+              questions = _context.Questions_.Where(e => e.description.Contains(text)).Skip(pagenumber * 10).Take(10).ToList();
+            }
+            var questions_dto = new List<Questions_DTO>();
+            foreach (var question in questions)
+            {
+                var question_dto = _mapper.Map<Questions_DTO>(question);
+                var tags1 = _context.Tag_.Where(e => e.question_id == question.Id)?.ToList();
+                if (tags1 != null)
+                {
+                    question_dto.tag = tags1;
+                }
+                questions_dto.Add(question_dto);
+            }
+            return Ok(questions_dto);
+        }
+
         // PUT: api/Questions/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPut]
+        [Route("AddView/{id}")]
+        public async Task<IActionResult> IncrementView(long id)
+        {
+            Questions question = await _context.Questions_.FindAsync(id);
+            _context.Update(question);
+            if(question != null)
+            {
+                if(question.views == null)
+                {
+                    question.views = 0;
+                }
+                question.views = question.views + 1;
+            }
+            _context.SaveChanges();
+            return NoContent();
+        }
         [HttpPut("{id}")]
         public async Task<IActionResult> PutQuestions(long id, Questions questions)
         {
@@ -128,6 +239,7 @@ namespace Online_Discussion_Forum.Controllers
           {
               return Problem("Entity set 'DiscussionDbContext.Questions_'  is null.");
           }
+            questions.update_date = new DateTime();
             _context.Questions_.Add(questions);
             await _context.SaveChangesAsync();
 

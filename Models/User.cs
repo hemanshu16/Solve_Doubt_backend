@@ -13,6 +13,9 @@ namespace Online_Discussion_Forum.Models
         public DateTime? Date { get; set; } = DateTime.MinValue;
         public byte[] passwordHash { get; set; } = null;
         public byte[] passwordSalt { get; set; } = null;
+
+        public string? image_url { get; set; } = null;
+        public string? about { get; set; } = null;
      }
 
      public class UserDto
@@ -22,6 +25,10 @@ namespace Online_Discussion_Forum.Models
         public string Email { get; set; } = "Email";
         public string? Name { get; set; } = "Name";
         public DateTime? Date { get; set; } = DateTime.MinValue;
+        public string? image_url { get; set; } = null;
+
+        public string? about { get; set; } = null;
+
 
     }
 
@@ -37,5 +44,11 @@ namespace Online_Discussion_Forum.Models
     {
         public string Email { get; set; }
         public string Password { get; set; }
+    }
+
+    public class Password
+    {
+        public string old_password;
+        public string new_password;
     }
 }

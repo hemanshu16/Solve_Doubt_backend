@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Online_Discussion_Forum.Models;
 
@@ -11,9 +12,11 @@ using Online_Discussion_Forum.Models;
 namespace Online_Discussion_Forum.Migrations
 {
     [DbContext(typeof(DiscussionDbContext))]
-    partial class DiscussionDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230329035804_upvoted")]
+    partial class upvoted
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -75,9 +78,6 @@ namespace Online_Discussion_Forum.Migrations
 
                     b.Property<string>("username")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<long?>("views")
-                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -145,12 +145,6 @@ namespace Online_Discussion_Forum.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Userid")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("about")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("image_url")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<byte[]>("passwordHash")

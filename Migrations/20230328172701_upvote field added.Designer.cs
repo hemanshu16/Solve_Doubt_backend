@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Online_Discussion_Forum.Models;
 
@@ -11,13 +12,15 @@ using Online_Discussion_Forum.Models;
 namespace Online_Discussion_Forum.Migrations
 {
     [DbContext(typeof(DiscussionDbContext))]
-    partial class DiscussionDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230328172701_upvote field added")]
+    partial class upvotefieldadded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.4")
+                .HasAnnotation("ProductVersion", "7.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -76,9 +79,6 @@ namespace Online_Discussion_Forum.Migrations
                     b.Property<string>("username")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<long?>("views")
-                        .HasColumnType("bigint");
-
                     b.HasKey("Id");
 
                     b.ToTable("Questions_");
@@ -115,9 +115,6 @@ namespace Online_Discussion_Forum.Migrations
                     b.Property<long>("answerid")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("questionid")
-                        .HasColumnType("bigint");
-
                     b.Property<long>("userid")
                         .HasColumnType("bigint");
 
@@ -145,12 +142,6 @@ namespace Online_Discussion_Forum.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Userid")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("about")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("image_url")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<byte[]>("passwordHash")

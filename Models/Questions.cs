@@ -10,6 +10,7 @@ namespace Online_Discussion_Forum.Models
         public string? username { get; set; }
         public long? user_id { get; set; }
         public DateTime? update_date { get; set; }
+        public long? views { get; set; }
     }
 
     public class Questions_DTO
@@ -20,6 +21,7 @@ namespace Online_Discussion_Forum.Models
         public string? description { get; set; }
         public long? user_id { get; set; }
         public DateTime? update_date { get; set; }
+        public long? views { get; set; }
 
         public List<Tags> tag { get; set; }
     }

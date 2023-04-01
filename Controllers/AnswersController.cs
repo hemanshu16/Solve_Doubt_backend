@@ -2,8 +2,11 @@
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,10 +20,11 @@ namespace Online_Discussion_Forum.Controllers
     public class AnswersController : ControllerBase
     {
         private readonly DiscussionDbContext _context;
-
-        public AnswersController(DiscussionDbContext context)
+        private readonly IMapper _mapper;
+        public AnswersController(DiscussionDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         // GET: api/Answers
@@ -53,14 +57,30 @@ namespace Online_Discussion_Forum.Controllers
         }
 
         [HttpGet]
-        [Route("GetAnswers")]
-        public async Task<ActionResult<IEnumerable<Answers>>> GetAnswersBYId(long id)
+        [Authorize]
+        [Route("GetAnswers/{id}")]
+        public async Task<ActionResult<IEnumerable<Answers_DTO>>> GetAnswersBYId(long id)
         {
             try
             {
                
                 var answers = _context.Answers_.Where(e => e.Question_id == id).ToList();
-                return answers;
+                var answersDto = new List<Answers_DTO>();
+                int userid = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                foreach (Answers answer in answers)
+                {
+                    answersDto.Add(_mapper.Map<Answers_DTO>(answer));
+                }
+                for(int i=0;i<answers.Count;i++)
+                {
+                    answersDto[i].upvoted = false;
+                    var upvote = _context.Upvote_.Where(e => e.userid == userid && e.answerid == answers[i].Id);
+                    if(upvote != null && upvote.Count() == 1)
+                    {
+                        answersDto[i].upvoted = true;
+                    }
+                }
+                return answersDto;
             }
             catch (Exception ex)
             {
@@ -77,7 +97,32 @@ namespace Online_Discussion_Forum.Controllers
             {
                 return BadRequest();
             }
+            var env = "";
+            try
+            {
+                Request.Headers.TryGetValue("jwt", out var env1);
+                env = env1;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Provide Authentication Key");
 
+            }
+            if (env == null)
+            {
+                return BadRequest("Provide Authentication Key ");
+            }
+
+            try
+            {
+                env = GetName(env);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Your Authentication Key is Invalid");
+
+            }
+            answers.Update_date = DateTime.Now;
             _context.Entry(answers).State = EntityState.Modified;
 
             try
@@ -137,6 +182,32 @@ namespace Online_Discussion_Forum.Controllers
             {
                 return NotFound();
             }
+            var env = "";
+            
+            try
+            {
+                Request.Headers.TryGetValue("jwt", out var env1);
+                env = env1;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Provide Authentication Key");
+
+            }
+            if(env == null)
+            {    return BadRequest("Provide Authentication Key ");
+             }
+            
+            try
+            {
+                env = GetName(env);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Your Authentication Key is Invalid");
+
+            }
+
             var answers = await _context.Answers_.FindAsync(id);
             if (answers == null)
             {
@@ -144,6 +215,7 @@ namespace Online_Discussion_Forum.Controllers
             }
 
             _context.Answers_.Remove(answers);
+            
             await _context.SaveChangesAsync();
 
             return NoContent();

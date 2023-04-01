@@ -9,6 +9,8 @@ namespace Online_Discussion_Forum.Models
         public DbSet<Questions> Questions_ { get; set; } = null!;
         public DbSet<User> User_ { get; set; } = null!;
         public DbSet<Tags> Tag_ { get; set; } = null!;
+
+        public DbSet<Upvote> Upvote_ { get; set; } = null!;
     }
 
 }

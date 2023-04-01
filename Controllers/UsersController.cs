@@ -11,6 +11,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using AutoMapper;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
+using System.Runtime.Intrinsics.X86;
 
 namespace Online_Discussion_Forum.Controllers
 {
@@ -40,33 +42,41 @@ namespace Online_Discussion_Forum.Controllers
         }
 
         // GET: api/Users/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(long id)
+        [Authorize]
+        [HttpGet("byid")]
+        public async Task<ActionResult<UserDto>> GetUser()
         {
           if (_context.User_ == null)
           {
               return NotFound();
           }
+          long id = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             var user = await _context.User_.FindAsync(id);
-
             if (user == null)
             {
                 return NotFound();
             }
+            var user_dto = _mapper.Map<UserDto>(user);
 
-            return user;
+            return user_dto;
         }
 
         // PUT: api/Users/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(long id, User user)
+        [Authorize]
+        [HttpPut]
+        public async Task<IActionResult> PutUser( UserDto user1)
         {
-            if (id != user.Id)
+            
+            long id = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var user = await _context.User_.FindAsync(id);
+            user.Name = user1.Name;
+            user.image_url = user1.image_url;
+            user.about = user1.about;
+            if (user == null)
             {
-                return BadRequest();
+                return NotFound();
             }
-
             _context.Entry(user).State = EntityState.Modified;
 
             try
@@ -87,7 +97,29 @@ namespace Online_Discussion_Forum.Controllers
 
             return NoContent();
         }
+        [Authorize]
+        [HttpPut]
+        [Route("UpdatePassword")]
+        public async Task<IActionResult> UpdatePassword(UserDto user1)
+        {
+            long id = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var user = await _context.User_.FindAsync(id);
+            if(user == null)
+            {
+                return BadRequest();
+            }
+            if(!VerifyPasswordHash(user1.Name, user.passwordHash, user.passwordSalt))
+            {
+                return BadRequest("Old Password is Not Correct");
+            }
+            CreatePasswordHash(user1.Email, out byte[] passwordHash, out byte[] passwordSalt);
+            _context.Update(user);
+            user.passwordSalt = passwordSalt;
+            user.passwordHash = passwordHash;
+            await _context.SaveChangesAsync();
 
+            return NoContent();
+        }
         // POST: api/Users
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
@@ -137,24 +169,23 @@ namespace Online_Discussion_Forum.Controllers
 
         [HttpGet]
         [Route("UserName")]
-        public async Task<String> UserDetails()
+        public async Task<ActionResult<User>> UserDetails()
         {
-            var username = "";
+            
+            User user;
             try
             {
                 Request.Headers.TryGetValue("jwt", out var env);
                 env = GetEmail(env);
                 string email = env;
-                var user = _context.User_.FirstOrDefault(e => e.Email == email);
-                if(user == null) { return "Some Thing Went Wrong please login again"; }
-                username = user.Name;
-
+                user = _context.User_.FirstOrDefault(e => e.Email == email);
+                if(user == null) { return BadRequest("Some Thing Went Wrong Please Try Again Later"); }
             }
             catch (Exception ex)
             {
-                return "Provide Authentication Key";
+                return BadRequest("Provide Authentication Key");
             }
-            return username;
+            return user;
         }
 
         [HttpPost]
@@ -179,7 +210,8 @@ namespace Online_Discussion_Forum.Controllers
         [HttpPost]
         [Route("Login")]
         public async Task<String?> Login(LoginDetails details)
-        {
+        {                       
+            
             var user = await _context.User_.FirstOrDefaultAsync(e => e.Email == details.Email);
             if(user == null)
             {
@@ -191,6 +223,7 @@ namespace Online_Discussion_Forum.Controllers
             }
             return  CreateToken(user);
         }
+
 
         private String CreateToken(User user)
         {
